@@ -603,14 +603,10 @@ function orbLoop() {
    TELEGRAM MINI APP
 ══════════════════════════════ */
 const tg = window.Telegram?.WebApp;
-if (tg) {
+const isInTelegram = tg && tg.initData && tg.initData.length > 0;
+if (isInTelegram) {
   tg.ready();
   tg.expand(); // full screen
-  // match Telegram's background if dark/light theme
-  if (tg.colorScheme === 'light') {
-    document.documentElement.style.setProperty('--bg', '#f0eff5');
-    document.documentElement.style.setProperty('--white', '#1a1a2e');
-  }
 }
 
 function haptic(type = 'light') {
