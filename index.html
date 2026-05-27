@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Послание Вселенной</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --gold:#c9a84c; --gold-l:#e8c46a; --violet:#9b6fc8; --violet-l:#c4a1e8;
+  --blue:#4fc3f7; --silver:#b8c5d6; --white:#e8e8f0; --bg:#08080e;
+}
+html,body { width:100%;height:100%;overflow:hidden;background:var(--bg);
+  font-family:'Georgia','Times New Roman',serif;color:var(--white); }
+
+/* ── canvases ── */
+#bgCvs  { position:fixed;inset:0;pointer-events:none;z-index:0; }
+#orbCvs { position:absolute;inset:-30px;pointer-events:none;z-index:2;border-radius:50%; }
+#rvCvs  { position:fixed;inset:0;pointer-events:none;z-index:20;opacity:0;transition:opacity .3s; }
+
+/* ── flash overlay ── */
+#ov { position:fixed;inset:0;background:var(--bg);z-index:15;opacity:0;pointer-events:none;transition:opacity .35s; }
+
+/* ── screens ── */
+.screen { position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:1;
+  opacity:0;transition:opacity .65s;pointer-events:none;padding:28px 22px;text-align:center; }
+.screen.on { opacity:1;pointer-events:all; }
+
+/* ══════════════ SCREEN 1 ══════════════ */
+.s1-top { margin-bottom:42px; }
+.s1-eyebrow {
+  font-size:9px;letter-spacing:4.5px;text-transform:uppercase;
+  color:var(--gold);opacity:.6;margin-bottom:22px;
+  font-family:'Helvetica Neue',sans-serif;font-weight:300;
+}
+.s1-h1 {
+  font-size:clamp(22px,5.5vw,32px);line-height:1.38;color:var(--white);
+  font-weight:400;margin-bottom:10px;
+}
+.s1-h1 strong {
+  display:block;font-weight:400;
+  background:linear-gradient(135deg,var(--gold-l) 0%,var(--violet-l) 50%,var(--blue) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.s1-sub {
+  font-size:13px;color:var(--silver);opacity:.45;
+  font-family:'Helvetica Neue',sans-serif;font-weight:300;letter-spacing:.4px;
+}
+
+/* ── orb wrapper ── */
+.orb-wrap {
+  position:relative;width:200px;height:200px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:36px;
+}
+
+/* arc SVG */
+.arc-svg { position:absolute;inset:-8px;width:calc(100%+16px);height:calc(100%+16px);
+  pointer-events:none;z-index:3; }
+
+/* THE ORB */
+.orb {
+  width:170px;height:170px;border-radius:50%;
+  cursor:pointer;user-select:none;
+  position:relative;z-index:1;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(155,111,200,.3) 0%, transparent 50%),
+    radial-gradient(circle at 65% 70%, rgba(79,195,247,.15) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(30,15,50,1) 0%, rgba(8,8,14,1) 100%);
+  border:1.5px solid rgba(155,111,200,.25);
+  box-shadow:
+    0 0 30px rgba(155,111,200,.12),
+    0 0 60px rgba(79,195,247,.06),
+    inset 0 0 40px rgba(155,111,200,.07),
+    inset 0 0 80px rgba(79,195,247,.04);
+  animation:orbBreath 5s ease-in-out infinite;
+  transition:border-color .4s,box-shadow .4s;
+}
+/* glass highlight */
+.orb::before {
+  content:'';position:absolute;
+  width:44%;height:28%;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(255,255,255,.16) 0%,transparent 70%);
+  top:13%;left:18%;pointer-events:none;z-index:4;
+}
+/* rotating gradient ring */
+.orb::after {
+  content:'';position:absolute;inset:-1.5px;border-radius:50%;
+  background:conic-gradient(from 0deg,
+    rgba(155,111,200,.55),rgba(79,195,247,.35),
+    rgba(201,168,76,.2),rgba(155,111,200,.55));
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 1.5px),white calc(100% - 1.5px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 1.5px),white calc(100% - 1.5px));
+  animation:orbRing 7s linear infinite;opacity:.7;
+  transition:opacity .4s;
+}
+/* inner light core */
+.orb-core {
+  position:absolute;inset:25%;border-radius:50%;
+  background:radial-gradient(circle,rgba(155,111,200,.25) 0%,rgba(79,195,247,.1) 50%,transparent 100%);
+  animation:coreBreath 3.5s ease-in-out infinite;
+  filter:blur(2px);
+}
+/* second inner shimmer */
+.orb-shimmer {
+  position:absolute;inset:35%;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.12),transparent 70%);
+  animation:shimmerMove 4s ease-in-out infinite alternate;
+}
+
+@keyframes orbBreath {
+  0%,100% { transform:scale(1); box-shadow:0 0 30px rgba(155,111,200,.12),0 0 60px rgba(79,195,247,.06),inset 0 0 40px rgba(155,111,200,.07); }
+  50%      { transform:scale(1.03); box-shadow:0 0 50px rgba(155,111,200,.22),0 0 100px rgba(79,195,247,.1),inset 0 0 60px rgba(155,111,200,.12); }
+}
+@keyframes orbRing { to { transform:rotate(360deg); } }
+@keyframes coreBreath {
+  0%,100% { transform:scale(.85);opacity:.6; }
+  50%     { transform:scale(1.15);opacity:1; }
+}
+@keyframes shimmerMove {
+  from { transform:translate(-10%,-10%) scale(.9); opacity:.5; }
+  to   { transform:translate(10%,10%) scale(1.1); opacity:.9; }
+}
+
+/* HOLDING STATE */
+.orb.holding {
+  border-color:rgba(155,111,200,.65) !important;
+  animation:orbBreath 5s ease-in-out infinite, orbVibrate .08s linear infinite;
+  box-shadow:
+    0 0 60px rgba(155,111,200,.4),
+    0 0 120px rgba(79,195,247,.18),
+    0 0 180px rgba(155,111,200,.1),
+    inset 0 0 60px rgba(155,111,200,.2) !important;
+}
+.orb.holding::after { opacity:1; }
+@keyframes orbVibrate {
+  0%   { transform:scale(1.03) translate(0,0); }
+  20%  { transform:scale(1.03) translate(-1.2px,.8px); }
+  40%  { transform:scale(1.03) translate(1.2px,-.8px); }
+  60%  { transform:scale(1.03) translate(-1px,-1px); }
+  80%  { transform:scale(1.03) translate(1px,1px); }
+  100% { transform:scale(1.03) translate(0,0); }
+}
+
+/* hint */
+.orb-hint {
+  font-size:11px;color:var(--silver);opacity:.4;
+  font-family:'Helvetica Neue',sans-serif;letter-spacing:.8px;
+  transition:opacity .4s;
+  line-height:1.6;
+}
+.orb-hint.active { opacity:.75;color:var(--violet-l); }
+
+/* s1 buttons */
+.s1-btns {
+  display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:4px;
+}
+.btn-cta {
+  padding:14px 38px;border-radius:50px;
+  border:1px solid rgba(201,168,76,.4);background:rgba(201,168,76,.07);
+  color:var(--gold-l);font-size:14px;letter-spacing:1.5px;text-transform:uppercase;
+  font-family:'Helvetica Neue',sans-serif;cursor:pointer;transition:all .3s;
+}
+.btn-cta:hover { border-color:rgba(201,168,76,.7);box-shadow:0 0 22px rgba(201,168,76,.18);transform:translateY(-1px); }
+.btn-cta:active { transform:scale(.97); }
+.btn-random {
+  padding:11px 26px;border-radius:40px;
+  border:1px solid rgba(79,195,247,.2);background:rgba(79,195,247,.04);
+  color:rgba(79,195,247,.65);font-size:12px;font-family:'Helvetica Neue',sans-serif;
+  letter-spacing:1px;cursor:pointer;transition:all .3s;
+}
+.btn-random:hover { border-color:rgba(79,195,247,.4);color:var(--blue);box-shadow:0 0 16px rgba(79,195,247,.1); }
+
+/* ══════════════ SCREEN 2 — REVEAL ══════════════ */
+#s2 { justify-content:center; }
+
+.s2-inner {
+  display:flex;flex-direction:column;align-items:center;
+  width:100%;max-width:380px;
+}
+
+.s2-num {
+  font-size:clamp(100px,26vw,148px);font-family:'Georgia',serif;font-weight:400;line-height:1;
+  background:linear-gradient(175deg,var(--gold-l) 0%,var(--gold) 40%,rgba(201,168,76,.4) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 28px rgba(201,168,76,.65));
+  opacity:0;transform:scale(.5) translateY(10px);
+  transition:opacity .55s cubic-bezier(.16,1,.3,1), transform .65s cubic-bezier(.34,1.56,.64,1);
+  margin-bottom:26px;position:relative;z-index:5;
+}
+.s2-num.vis { opacity:1;transform:scale(1) translateY(0); }
+
+.s2-msg {
+  font-size:clamp(16px,4vw,21px);line-height:1.7;color:var(--white);
+  font-style:italic;max-width:310px;
+  opacity:0;transition:opacity .7s ease .3s;
+  margin-bottom:28px;margin-top:8px;
+}
+.s2-msg.vis { opacity:1; }
+
+.s2-meta {
+  display:flex;flex-direction:column;gap:9px;width:100%;max-width:310px;
+  opacity:0;transition:opacity .6s ease .75s;margin-bottom:30px;
+}
+.s2-meta.vis { opacity:1; }
+
+.meta-row {
+  display:flex;align-items:center;gap:11px;
+  padding:10px 15px;border-radius:14px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.025);
+  backdrop-filter:blur(16px);
+}
+.meta-ico { font-size:14px;flex-shrink:0; }
+.meta-body { display:flex;flex-direction:column;gap:1px;text-align:left;flex:1; }
+.meta-lbl { font-size:9px;letter-spacing:2.5px;text-transform:uppercase;
+  font-family:'Helvetica Neue',sans-serif;font-weight:400;opacity:.38;color:var(--silver); }
+.meta-val { font-size:13px;font-family:'Helvetica Neue',sans-serif;
+  font-weight:400;color:var(--white);letter-spacing:.3px; }
+.meta-desc { font-size:10px;color:var(--silver);opacity:.48;
+  font-family:'Helvetica Neue',sans-serif;margin-top:1px; }
+.clr-dot { width:20px;height:20px;border-radius:50%;flex-shrink:0;
+  box-shadow:0 0 10px rgba(0,0,0,.5); }
+
+.s2-btns {
+  display:flex;gap:11px;flex-wrap:wrap;justify-content:center;
+  opacity:0;transition:opacity .5s ease 1.05s;
+}
+.s2-btns.vis { opacity:1; }
+
+.btn-share {
+  padding:13px 26px;border-radius:40px;
+  border:1px solid rgba(201,168,76,.4);background:rgba(201,168,76,.07);
+  color:var(--gold-l);font-size:13px;font-family:'Helvetica Neue',sans-serif;
+  letter-spacing:1px;cursor:pointer;transition:all .3s;
+}
+.btn-share:hover { border-color:var(--gold);box-shadow:0 0 22px rgba(201,168,76,.16); }
+
+.btn-again {
+  padding:13px 26px;border-radius:40px;
+  border:1px solid rgba(255,255,255,.1);background:transparent;
+  color:var(--silver);opacity:.6;font-size:13px;font-family:'Helvetica Neue',sans-serif;
+  letter-spacing:1px;cursor:pointer;transition:all .3s;
+}
+.btn-again:hover { opacity:1;border-color:rgba(255,255,255,.22); }
+
+/* screen glow (expands on reveal) */
+.screen-glow {
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 70% 60% at 50% 40%,rgba(201,168,76,.0) 0%,transparent 70%);
+  transition:background 1.2s ease;
+}
+.screen-glow.active {
+  background:radial-gradient(ellipse 80% 70% at 50% 35%,rgba(201,168,76,.09) 0%,rgba(155,111,200,.05) 50%,transparent 70%);
+}
+</style>
+</head>
+<body>
+
+<!-- canvases -->
+<canvas id="bgCvs"></canvas>
+<canvas id="rvCvs"></canvas>
+<div class="screen-glow" id="screenGlow"></div>
+<div id="ov"></div>
+
+<!-- ── SCREEN 1 ── -->
+<div class="screen on" id="s1">
+  <div class="s1-top">
+    <div class="s1-eyebrow">✦ &nbsp; послание вселенной &nbsp; ✦</div>
+    <h1 class="s1-h1">
+      Вселенная уже<br>
+      <strong>знает ответ</strong>
+    </h1>
+    <p class="s1-sub">Просто прислушайся</p>
+  </div>
+
+  <div class="orb-wrap" id="orbWrap">
+    <!-- Progress arc -->
+    <svg class="arc-svg" viewBox="0 0 216 216" id="arcSvg">
+      <defs>
+        <linearGradient id="ag" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#9b6fc8"/>
+          <stop offset="100%" stop-color="#4fc3f7"/>
+        </linearGradient>
+      </defs>
+      <circle cx="108" cy="108" r="100" fill="none"
+        stroke="rgba(155,111,200,.1)" stroke-width="1.5"/>
+      <circle cx="108" cy="108" r="100" fill="none"
+        stroke="url(#ag)" stroke-width="2" stroke-linecap="round"
+        stroke-dasharray="628.3" stroke-dashoffset="628.3"
+        transform="rotate(-90 108 108)" id="arcFill" opacity="0"
+        style="transition:opacity .3s"/>
+    </svg>
+
+    <!-- Orbital particle canvas -->
+    <canvas id="orbCvs"></canvas>
+
+    <!-- The orb -->
+    <div class="orb" id="orb"
+      onmousedown="holdStart()" onmouseup="holdStop()" onmouseleave="holdStop()"
+      ontouchstart="holdStart(event)" ontouchend="holdStop()">
+      <div class="orb-core"></div>
+      <div class="orb-shimmer"></div>
+    </div>
+  </div>
+
+  <p class="orb-hint" id="orbHint">удерживайте, чтобы Вселенная ответила</p>
+
+  <div class="s1-btns">
+    <button class="btn-random" onclick="doReveal(Math.floor(Math.random()*9)+1)">✦ Довериться случайности</button>
+  </div>
+</div>
+
+<!-- ── SCREEN 2 (reveal) ── -->
+<div class="screen" id="s2">
+  <div class="s2-inner">
+    <p class="s2-msg" id="s2m"></p>
+    <div class="s2-meta" id="s2meta"></div>
+    <div class="s2-btns" id="s2btns">
+      <button class="btn-share" onclick="doShare()">Поделиться ✦</button>
+      <button class="btn-again" onclick="goBack()">Ещё раз</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════
+   DATA
+══════════════════════════════ */
+const DATA = {
+  1:{
+    msgs:[
+      "Начни раньше, чем будешь готов. Твоя энергия сегодня на пике — действуй.",
+      "Сегодня не время думать — время делать. Первый шаг меняет всё.",
+      "Ты уже знаешь что делать. Осталось только начать.",
+      "Твои идеи созрели. Мир ждёт, когда ты наконец решишься.",
+      "Страх и готовность — не одно и то же. Начни несмотря на страх.",
+      "Сегодня ты тот, кто задаёт направление. Доверяй своему импульсу.",
+      "Пока другие ждут подходящего момента, ты создаёшь его сам.",
+      "Энергия первого шага — самая мощная. Сделай его сегодня.",
+      "Новое не ждёт разрешения. Оно начинается тогда, когда ты решаешь.",
+      "Ты рождён вести. Сегодня — подходящий день напомнить об этом себе."
+    ],
+    energy:"Инициатива",
+    energyDescs:["день смелых первых шагов","день действия и решимости","день, когда лидер внутри тебя просыпается"],
+    color:"#FF6B6B", colorName:"Алый", colorDesc:"наполняет решимостью и внутренней силой"
+  },
+  2:{
+    msgs:[
+      "Сегодня мягкость принесёт больше силы, чем давление. Будь собой.",
+      "Настоящая сила — в умении слышать. Сегодня слушай больше, чем говоришь.",
+      "Позволь себе принять помощь. Это не слабость — это мудрость.",
+      "Сегодня важнее быть рядом, чем быть правым.",
+      "Твоя чуткость — не недостаток. Сегодня она открывает двери.",
+      "В тихом разговоре сегодня решится больше, чем в громком споре.",
+      "Уступить — не значит проиграть. Иногда это единственный путь к победе.",
+      "Позаботься о ком-то сегодня. И заметишь, как сам наполнился.",
+      "Мягкое слово запомнят дольше, чем правильный аргумент.",
+      "Сегодня твоя энергия лучше всего работает через сотрудничество."
+    ],
+    energy:"Гармония",
+    energyDescs:["день тихой внутренней силы","день принятия и чуткости","день, когда союзники важнее достижений"],
+    color:"#98D8C8", colorName:"Лунный зелёный", colorDesc:"успокаивает и восстанавливает баланс"
+  },
+  3:{
+    msgs:[
+      "Не прячь свою энергию — люди ждут твой свет. Говори, твори, светись.",
+      "То, что ты создашь сегодня, может изменить чей-то день навсегда.",
+      "Выражай себя без извинений. Твой голос имеет право звучать.",
+      "Сегодня твоё вдохновение — не случайность. Следуй за ним.",
+      "Позволь себе быть немного безрассудным в творчестве — именно оттуда рождается гениальное.",
+      "Поделись тем, что тебя восхищает. Энтузиазм заразителен.",
+      "Сегодня не день для чрезмерной серьёзности. Позволь себе играть.",
+      "Скажи то, что давно хотел. Сегодня слова падают в плодородную почву.",
+      "Твоя уникальность — это актив, а не странность.",
+      "Красота вокруг тебя сегодня говорит с тобой. Остановись и услышь её."
+    ],
+    energy:"Творчество",
+    energyDescs:["день самовыражения и связей","день вдохновения и лёгкости","день, когда твой свет нужен другим"],
+    color:"#FFD93D", colorName:"Солнечный", colorDesc:"усиливает радость и открытость миру"
+  },
+  4:{
+    msgs:[
+      "Заверши хотя бы одно дело. Одно завершение меняет всё твоё состояние.",
+      "Маленький шаг каждый день — это не мало. Это и есть настоящий путь.",
+      "Порядок снаружи создаёт порядок внутри. Начни с малого.",
+      "Надёжность — это не скука. Это то, на что можно опереться в шторм.",
+      "Сегодня хороший день сделать то, что давно откладывал.",
+      "Твоя устойчивость — это то, что другие ценят, даже не говоря об этом.",
+      "Дисциплина сегодня — это свобода завтра.",
+      "Не всё нужно делать быстро. Сделай это хорошо.",
+      "Посади семя сегодня, даже если урожай будет нескоро.",
+      "Твой фундамент строится именно в такие обычные дни."
+    ],
+    energy:"Стабильность",
+    energyDescs:["день порядка и уверенности","день, когда труд становится медитацией","день созидания и надёжности"],
+    color:"#A0845C", colorName:"Земляной", colorDesc:"даёт опору и сосредоточенность"
+  },
+  5:{
+    msgs:[
+      "День неожиданных возможностей. Соглашайся чаще — Вселенная тестирует твою открытость.",
+      "Перемена, которой ты боишься, может быть именно тем, чего ты ждал.",
+      "Сегодня не держись за привычное. Попробуй иначе.",
+      "Новый маршрут, новый собеседник, новая идея — сегодня они особенно важны.",
+      "Гибкость сильнее упорства. Позволь ситуации удивить тебя.",
+      "То, что кажется случайностью сегодня, окажется закономерностью завтра.",
+      "Выйди из зоны комфорта хотя бы на один шаг. Именно там начинается рост.",
+      "Сегодня особенно ценно быть любопытным, а не правым.",
+      "Отпусти план. Посмотри, что предложит жизнь.",
+      "Приключение не требует далёких поездок. Иногда это просто другой путь домой."
+    ],
+    energy:"Перемены",
+    energyDescs:["день движения и новых путей","день, когда случайности становятся знаками","день свободы и открытых горизонтов"],
+    color:"#C084FC", colorName:"Аметистовый", colorDesc:"помогает отпустить контроль и двигаться"
+  },
+  6:{
+    msgs:[
+      "Тебе не нужно контролировать всё, чтобы всё получилось. Доверяй.",
+      "Отпусти то, что не в твоих руках. Это освобождает руки для важного.",
+      "Сегодня твой дом, твои близкие, твоё тело просят внимания. Дай им это.",
+      "Ты уже сделал достаточно. Позволь жизни сделать остальное.",
+      "Доверие — это не наивность. Это выбор жить без лишнего напряжения.",
+      "Позаботься о себе так же бережно, как заботишься о других.",
+      "Иногда лучший контроль — это его отсутствие.",
+      "Принятие — это не сдача. Это мудрость знать, что можно изменить, а что нет.",
+      "Сегодня кто-то нуждается в твоём присутствии больше, чем в твоих словах.",
+      "Красота сегодняшнего дня видна только тогда, когда не торопишься."
+    ],
+    energy:"Доверие",
+    energyDescs:["день принятия и тепла","день заботы о себе и близких","день, когда отпустить — значит победить"],
+    color:"#6EE7B7", colorName:"Нефритовый", colorDesc:"открывает сердце и снимает тревогу"
+  },
+  7:{
+    msgs:[
+      "Ответ придёт в тишине. Твоё спокойствие сильнее любых слов.",
+      "Не всё нужно объяснять. Некоторые вещи просто нужно прочувствовать.",
+      "Твоя интуиция сегодня точнее любого анализа. Прислушайся к ней.",
+      "Уединение сегодня — это не одиночество. Это диалог с собой.",
+      "Мудрость не в том, чтобы знать больше. А в том, чтобы понимать глубже.",
+      "Замедлись. В паузе между словами больше смысла, чем в самих словах.",
+      "Сегодня не торопи события. Позволь пониманию прийти само.",
+      "Что ты чувствуешь прямо сейчас — важнее того, что ты думаешь.",
+      "Наблюдай больше, чем говори. Сегодня мир многое рассказывает тем, кто смотрит.",
+      "Глубина важнее скорости. Сегодня — день медленных правильных решений."
+    ],
+    energy:"Мудрость",
+    energyDescs:["день интуиции и глубины","день тишины и ясности","день, когда внутренний голос говорит громче всех"],
+    color:"#818CF8", colorName:"Звёздный индиго", colorDesc:"усиливает ясность мысли и интуицию"
+  },
+  8:{
+    msgs:[
+      "День уверенных решений и притяжения изобилия. Цени то, что имеешь — оно умножится.",
+      "Твоя уверенность сегодня — это магнит. Знай себе цену.",
+      "Богатство начинается с ощущения достатка внутри. Сегодня культивируй это.",
+      "Ты заслуживаешь большего — и сегодня хороший день это принять.",
+      "Деньги, энергия, внимание — всё течёт туда, куда направлен фокус. Направь правильно.",
+      "Не бойся занять пространство. Ты имеешь на это полное право.",
+      "Успех сегодня — это не случайность. Это результат того, кем ты стал.",
+      "Цени свой труд. Не соглашайся на меньше, чем заслуживаешь.",
+      "Изобилие — это состояние ума. Сегодня выбери именно его.",
+      "Ты создаёшь ценность. Помни об этом в каждом разговоре сегодня."
+    ],
+    energy:"Изобилие",
+    energyDescs:["день силы, денег и уверенности","день притяжения и роста","день, когда вселенная поддерживает твои амбиции"],
+    color:"#FBBF24", colorName:"Золотой", colorDesc:"притягивает успех и материальный достаток"
+  },
+  9:{
+    msgs:[
+      "Что уходит сейчас — освобождает место лучшему. Отпусти с благодарностью.",
+      "Цикл завершается. Это не конец — это освобождение.",
+      "Поблагодари то, что уходит. Оно сделало своё дело.",
+      "Освобождение — это акт храбрости. Сегодня ты достаточно смел для этого.",
+      "Старое уступает место тому, о чём ты на самом деле мечтал.",
+      "Сегодня хороший день простить. Себя или кого-то другого.",
+      "Не держись за то, что уже сыграло свою роль. Следующая глава лучше.",
+      "Потеря сегодня — это пространство для роста завтра.",
+      "Трансформация — это всегда немного страшно. И всегда — правильно.",
+      "Закрой то, что давно нужно было закрыть. Это и есть твой следующий шаг."
+    ],
+    energy:"Завершение",
+    energyDescs:["день отпускания и трансформации","день благодарности и прощания","день, когда старое уступает место новому"],
+    color:"#F9A8D4", colorName:"Розовый кварц", colorDesc:"смягчает и помогает завершить цикл"
+  }
+};
+
+/* ══════════════════════════════
+   BACKGROUND PARTICLES (full screen)
+══════════════════════════════ */
+const bgCvs = document.getElementById('bgCvs');
+const bgCtx = bgCvs.getContext('2d');
+
+function resizeBg() { bgCvs.width=innerWidth; bgCvs.height=innerHeight; }
+resizeBg(); window.addEventListener('resize', resizeBg);
+
+class BgParticle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * bgCvs.width;
+    this.y = Math.random() * bgCvs.height;
+    this.r = Math.random() * 1.3 + .25;
+    this.vx = (Math.random()-.5) * .18;
+    this.vy = -Math.random() * .28 - .06;
+    this.a = Math.random() * .3 + .04;
+    this.l = 0; this.ml = Math.random() * 160 + 80;
+    const cs = ['rgba(201,168,76,','rgba(155,111,200,','rgba(79,195,247,'];
+    this.c = cs[~~(Math.random()*3)];
+  }
+  tick() {
+    this.x += this.vx; this.y += this.vy; this.l++;
+    if(this.l>this.ml || this.y<-6) this.reset();
+  }
+  draw() {
+    const p = this.l/this.ml;
+    const al = this.a*(p<.2?p/.2:p>.8?(1-p)/.2:1);
+    bgCtx.beginPath(); bgCtx.arc(this.x,this.y,this.r,0,Math.PI*2);
+    bgCtx.fillStyle = this.c+al+')'; bgCtx.fill();
+  }
+}
+
+const bgPts = Array.from({length:65}, ()=>{ const p=new BgParticle(); p.l=Math.random()*p.ml; return p; });
+
+function bgLoop() {
+  bgCtx.clearRect(0,0,bgCvs.width,bgCvs.height);
+  bgPts.forEach(p=>{ p.tick(); p.draw(); });
+  requestAnimationFrame(bgLoop);
+}
+bgLoop();
+
+/* ══════════════════════════════
+   ORBITAL PARTICLES (around orb)
+══════════════════════════════ */
+const orbCvs = document.getElementById('orbCvs');
+const orbCtx = orbCvs.getContext('2d');
+let orbW = 0, orbH = 0, orbCX = 0, orbCY = 0;
+
+function setupOrbCanvas() {
+  const ow = orbCvs.parentElement;
+  const r = ow.getBoundingClientRect();
+  orbW = r.width + 60; orbH = r.height + 60;
+  orbCvs.width = orbW; orbCvs.height = orbH;
+  orbCX = orbW/2; orbCY = orbH/2;
+}
+
+class OrbParticle {
+  constructor() { this.reset(); }
+  reset() {
+    this.angle = Math.random() * Math.PI*2;
+    this.baseR = 62 + Math.random()*38;
+    this.curR  = this.baseR;
+    this.spd   = (Math.random()*.014+.006) * (Math.random()>.5?1:-1);
+    this.sz    = Math.random()*2+.4;
+    this.a     = Math.random()*.5+.08;
+    this.yR    = .32+Math.random()*.28;   // elliptical y-squeeze
+    const cs   = ['rgba(155,111,200,','rgba(79,195,247,','rgba(201,168,76,'];
+    this.c     = cs[~~(Math.random()*3)];
+    this.pulse = Math.random()*Math.PI*2; // random phase for size pulse
+  }
+  tick(spdMult, pull) {
+    this.angle += this.spd * spdMult;
+    const tR = this.baseR*(1 - pull*.45);
+    this.curR += (tR - this.curR)*.06;
+    this.x = orbCX + Math.cos(this.angle)*this.curR;
+    this.y = orbCY + Math.sin(this.angle)*this.curR*this.yR;
+    this.pulse += .04;
+  }
+  draw(pull) {
+    const alpha = Math.min(this.a*(1+pull*.9), .92);
+    const sz    = this.sz*(1+Math.sin(this.pulse)*.2)*(1+pull*.4);
+    orbCtx.beginPath(); orbCtx.arc(this.x,this.y,sz,0,Math.PI*2);
+    orbCtx.fillStyle = this.c+alpha+')'; orbCtx.fill();
+  }
+}
+
+const OP_COUNT = 55;
+let orbPts = [];
+function initOrbParticles() {
+  setupOrbCanvas();
+  orbPts = Array.from({length:OP_COUNT}, ()=>new OrbParticle());
+}
+
+let holdProgress = 0; // 0..1
+
+function orbLoop() {
+  orbCtx.clearRect(0,0,orbW,orbH);
+  const spdMult = 1 + holdProgress*3.5;
+  orbPts.forEach(p=>{ p.tick(spdMult, holdProgress); p.draw(holdProgress); });
+
+  // inner glow when holding
+  if(holdProgress > 0) {
+    const g = orbCtx.createRadialGradient(orbCX,orbCY,0,orbCX,orbCY,75);
+    g.addColorStop(0, `rgba(155,111,200,${holdProgress*.18})`);
+    g.addColorStop(1, 'rgba(155,111,200,0)');
+    orbCtx.beginPath(); orbCtx.arc(orbCX,orbCY,75,0,Math.PI*2);
+    orbCtx.fillStyle=g; orbCtx.fill();
+  }
+
+  requestAnimationFrame(orbLoop);
+}
+
+/* ══════════════════════════════
+   TELEGRAM MINI APP
+══════════════════════════════ */
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand(); // full screen
+  // match Telegram's background if dark/light theme
+  if (tg.colorScheme === 'light') {
+    document.documentElement.style.setProperty('--bg', '#f0eff5');
+    document.documentElement.style.setProperty('--white', '#1a1a2e');
+  }
+}
+
+function haptic(type = 'light') {
+  tg?.HapticFeedback?.impactOccurred(type);
+}
+function hapticNotify(type = 'success') {
+  tg?.HapticFeedback?.notificationOccurred(type);
+}
+
+window.addEventListener('load', ()=>{ initOrbParticles(); orbLoop(); });
+window.addEventListener('resize', ()=>{ setupOrbCanvas(); });
+
+/* ══════════════════════════════
+   HOLD MECHANIC
+══════════════════════════════ */
+const orbEl   = document.getElementById('orb');
+const orbHint = document.getElementById('orbHint');
+const arcFill = document.getElementById('arcFill');
+const ARC = 628.3;
+
+let holdTimer = null, holdStartTime = null, isHolding = false;
+
+function holdStart(e) {
+  if(e) e.preventDefault();
+  if(isHolding) return;
+  isHolding = true;
+  holdStartTime = Date.now();
+  orbEl.classList.add('holding');
+  orbHint.classList.add('active');
+  orbHint.textContent = 'не отпускай…';
+  arcFill.style.opacity = '1';
+  haptic('medium'); // start haptic
+
+  let lastHapticAt = 0;
+  holdTimer = setInterval(()=>{
+    const el = Date.now() - holdStartTime;
+    holdProgress = Math.min(el/3000, 1);
+    arcFill.style.strokeDashoffset = ARC*(1-holdProgress);
+
+    // periodic haptic pulses while holding
+    if(el - lastHapticAt > 600) {
+      haptic('light');
+      lastHapticAt = el;
+    }
+
+    if(el >= 3000) {
+      holdDone();
+    }
+  }, 30);
+}
+
+function holdStop() {
+  if(!isHolding) return;
+  isHolding = false;
+  clearInterval(holdTimer); holdTimer = null;
+  orbEl.classList.remove('holding');
+  orbHint.classList.remove('active');
+  orbHint.textContent = 'удерживайте, чтобы Вселенная ответила';
+  arcFill.style.opacity = '0';
+  arcFill.style.strokeDashoffset = ARC;
+  holdProgress = 0;
+}
+
+function holdDone() {
+  clearInterval(holdTimer); holdTimer = null;
+  isHolding = false;
+  orbEl.classList.remove('holding');
+  arcFill.style.opacity = '0';
+  arcFill.style.strokeDashoffset = ARC;
+  holdProgress = 0;
+  haptic('heavy'); // strong haptic = Вселенная ответила
+  orbHint.classList.remove('active');
+
+  const n = Math.floor(Math.random()*9)+1;
+  doReveal(n);
+}
+
+/* ══════════════════════════════
+   REVEAL — PARTICLE ANIMATION
+══════════════════════════════ */
+const rvCvs = document.getElementById('rvCvs');
+const rvCtx  = rvCvs.getContext('2d');
+
+function resizeRv() { rvCvs.width=innerWidth; rvCvs.height=innerHeight; }
+resizeRv(); window.addEventListener('resize', resizeRv);
+
+function revealParticles(onDone) {
+  rvCvs.style.opacity = '1';
+  const CX = rvCvs.width/2, CY = rvCvs.height/2;
+  const COUNT = 140;
+  const COLORS = ['rgba(201,168,76,','rgba(155,111,200,','rgba(79,195,247,','rgba(232,196,106,'];
+
+  // phase 0: scatter → converge  (0..1100ms)
+  // phase 1: hold/glow burst     (1100..1500ms)
+  // phase 2: explode out         (1500..2000ms)
+  // phase 3: fade                (2000..2300ms)
+
+  const pts = Array.from({length:COUNT}, ()=>{
+    const a = Math.random()*Math.PI*2;
+    const d = 90 + Math.random()*Math.min(CX,CY)*.7;
+    return {
+      x: CX + Math.cos(a)*d, y: CY + Math.sin(a)*d,
+      tx:CX+(Math.random()-.5)*16, ty:CY+(Math.random()-.5)*16,
+      vx:0, vy:0,
+      sz: Math.random()*2.8+.5,
+      a: Math.random()*.7+.3,
+      c: COLORS[~~(Math.random()*COLORS.length)],
+      phase:0
+    };
+  });
+
+  let t0 = null;
+
+  function frame(t) {
+    if(!t0) t0=t;
+    const elapsed = t - t0;
+    rvCtx.clearRect(0,0,rvCvs.width,rvCvs.height);
+
+    if(elapsed < 1100) {
+      // CONVERGE
+      const pr = elapsed/1100;
+      const ease = pr<.5?2*pr*pr:1-Math.pow(-2*pr+2,2)/2;
+      pts.forEach(p=>{
+        p.x += (p.tx-p.x)*.055;
+        p.y += (p.ty-p.y)*.055;
+        const al = p.a*(1-ease*.1);
+        rvCtx.beginPath(); rvCtx.arc(p.x,p.y,p.sz*(1+ease*.5),0,Math.PI*2);
+        rvCtx.fillStyle=p.c+al+')'; rvCtx.fill();
+      });
+      // growing center glow
+      const gr = rvCtx.createRadialGradient(CX,CY,0,CX,CY,55+ease*80);
+      gr.addColorStop(0,`rgba(201,168,76,${ease*.45})`);
+      gr.addColorStop(.4,`rgba(155,111,200,${ease*.2})`);
+      gr.addColorStop(1,'rgba(0,0,0,0)');
+      rvCtx.beginPath(); rvCtx.arc(CX,CY,55+ease*80,0,Math.PI*2);
+      rvCtx.fillStyle=gr; rvCtx.fill();
+      requestAnimationFrame(frame);
+
+    } else if(elapsed < 1500) {
+      // HOLD / BURST INIT
+      if(pts[0].phase===0){
+        pts.forEach(p=>{
+          const a2=Math.random()*Math.PI*2, sp=3+Math.random()*5;
+          p.vx=Math.cos(a2)*sp; p.vy=Math.sin(a2)*sp;
+          p.x=CX+(Math.random()-.5)*8; p.y=CY+(Math.random()-.5)*8;
+          p.phase=1;
+        });
+      }
+      // bright burst glow
+      const gr2 = rvCtx.createRadialGradient(CX,CY,0,CX,CY,120);
+      gr2.addColorStop(0,'rgba(232,196,106,.55)');
+      gr2.addColorStop(.3,'rgba(201,168,76,.25)');
+      gr2.addColorStop(1,'rgba(0,0,0,0)');
+      rvCtx.beginPath(); rvCtx.arc(CX,CY,120,0,Math.PI*2);
+      rvCtx.fillStyle=gr2; rvCtx.fill();
+      requestAnimationFrame(frame);
+
+    } else if(elapsed < 2200) {
+      // EXPLODE
+      const pr = (elapsed-1500)/700;
+      pts.forEach(p=>{
+        p.x+=p.vx; p.y+=p.vy; p.vx*=.93; p.vy*=.93;
+        const al = p.a*(1-pr);
+        if(al>0){
+          rvCtx.beginPath(); rvCtx.arc(p.x,p.y,p.sz*(1+pr*.5),0,Math.PI*2);
+          rvCtx.fillStyle=p.c+al+')'; rvCtx.fill();
+        }
+      });
+      // expanding ring
+      const rR = 20+pr*Math.min(CX,CY)*1.2;
+      const gr3=rvCtx.createRadialGradient(CX,CY,rR*.65,CX,CY,rR);
+      gr3.addColorStop(0,'rgba(201,168,76,0)');
+      gr3.addColorStop(.5,`rgba(201,168,76,${.35*(1-pr)})`);
+      gr3.addColorStop(1,'rgba(201,168,76,0)');
+      rvCtx.beginPath(); rvCtx.arc(CX,CY,rR,0,Math.PI*2);
+      rvCtx.fillStyle=gr3; rvCtx.fill();
+      requestAnimationFrame(frame);
+
+    } else {
+      // DONE
+      rvCvs.style.opacity='0';
+      onDone();
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+/* ══════════════════════════════
+   NAVIGATION
+══════════════════════════════ */
+function showScr(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+
+function flash(cb) {
+  const ov = document.getElementById('ov');
+  ov.style.opacity='1'; ov.style.transition='opacity .28s';
+  setTimeout(()=>{
+    if(cb) cb();
+    ov.style.transition='opacity .45s';
+    ov.style.opacity='0';
+  }, 280);
+}
+
+function doReveal(n) {
+  const d = DATA[n];
+  const me=document.getElementById('s2m');
+  const mt=document.getElementById('s2meta'), bt=document.getElementById('s2btns');
+
+  // reset
+  [me,mt,bt].forEach(el=>el.classList.remove('vis'));
+  document.getElementById('screenGlow').classList.remove('active');
+
+  // flash → particle animation → reveal elements
+  flash(()=>{
+    showScr('s2');
+
+    // day-based index so all users get same message on same day
+    const dayN = Math.floor(Date.now() / 86400000);
+    const msg  = d.msgs[dayN % d.msgs.length];
+    const eDesc = d.energyDescs[dayN % d.energyDescs.length];
+
+    me.textContent = '«' + msg + '»';
+    mt.innerHTML = `
+      <div class="meta-row">
+        <span class="meta-ico">✦</span>
+        <div class="meta-body">
+          <span class="meta-lbl">Энергия дня</span>
+          <span class="meta-val">${d.energy}</span>
+          <span class="meta-desc">${eDesc}</span>
+        </div>
+      </div>
+      <div class="meta-row">
+        <span class="meta-ico">◉</span>
+        <div class="meta-body">
+          <span class="meta-lbl">Цвет дня</span>
+          <span class="meta-val">${d.colorName}</span>
+          <span class="meta-desc">${d.colorDesc}</span>
+        </div>
+        <span class="clr-dot" style="background:${d.color};box-shadow:0 0 10px ${d.color}88"></span>
+      </div>
+    `;
+
+    // run particle animation, then show elements
+    revealParticles(()=>{
+      hapticNotify('success'); // финальный сигнал — послание получено
+      document.getElementById('screenGlow').classList.add('active');
+      requestAnimationFrame(()=>{
+        setTimeout(()=>ne.classList.add('vis'), 50);
+        setTimeout(()=>me.classList.add('vis'), 50);
+        setTimeout(()=>mt.classList.add('vis'), 50);
+        setTimeout(()=>bt.classList.add('vis'), 50);
+      });
+    });
+  });
+}
+
+function goBack() {
+  holdProgress=0;
+  orbHint.textContent='удерживайте, чтобы Вселенная ответила';
+  orbHint.classList.remove('active');
+  flash(()=>{ showScr('s1'); document.getElementById('screenGlow').classList.remove('active'); });
+}
+
+function doShare() {
+  const n  = document.getElementById('s2n').textContent;
+  const m  = document.getElementById('s2m').textContent;
+  const tx = `✦ Послание Вселенной — число ${n}\n\n${m}`;
+  if(navigator.share) {
+    navigator.share({title:'Послание Вселенной',text:tx}).catch(()=>{});
+  } else {
+    navigator.clipboard?.writeText(tx);
+    const b=document.querySelector('.btn-share'), o=b.textContent;
+    b.textContent='✓ Скопировано'; setTimeout(()=>b.textContent=o,2000);
+  }
+}
+</script>
+</body>
+</html>
