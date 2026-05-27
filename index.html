@@ -874,15 +874,22 @@ function goBack() {
 }
 
 function doShare() {
-  const n  = document.getElementById('s2n').textContent;
-  const m  = document.getElementById('s2m').textContent;
-  const tx = `✦ Послание Вселенной — число ${n}\n\n${m}`;
-  if(navigator.share) {
-    navigator.share({title:'Послание Вселенной',text:tx}).catch(()=>{});
+  const m = document.getElementById('s2m').textContent;
+  const shareText = `✦ Послание Вселенной\n\n${m}\n\nПолучи своё послание 👇`;
+  const botUrl = 'https://t.me/PoslanieZnakBot';
+
+  if (isInTelegram) {
+    // Telegram native share — открывает диалог выбора чата
+    const url = 'https://t.me/share/url?url=' + encodeURIComponent(botUrl)
+              + '&text=' + encodeURIComponent(shareText);
+    tg.openTelegramLink(url);
+  } else if (navigator.share) {
+    navigator.share({ title:'Послание Вселенной', text:shareText, url:botUrl }).catch(()=>{});
   } else {
-    navigator.clipboard?.writeText(tx);
-    const b=document.querySelector('.btn-share'), o=b.textContent;
-    b.textContent='✓ Скопировано'; setTimeout(()=>b.textContent=o,2000);
+    navigator.clipboard?.writeText(shareText + '\n' + botUrl);
+    const b = document.querySelector('.btn-share'), o = b.textContent;
+    b.textContent = '✓ Скопировано';
+    setTimeout(()=> b.textContent = o, 2000);
   }
 }
 </script>
