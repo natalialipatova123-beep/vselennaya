@@ -665,6 +665,10 @@ function orbLoop() {
 /* ══════════════════════════════
    TELEGRAM MINI APP
 ══════════════════════════════ */
+// очищаем старые данные лимитов при каждом запуске
+localStorage.removeItem('vsel_last_date');
+localStorage.removeItem('vsel_premium');
+
 const tg = window.Telegram?.WebApp;
 const isInTelegram = tg && tg.initData && tg.initData.length > 0;
 if (isInTelegram) {
