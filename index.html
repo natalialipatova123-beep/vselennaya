@@ -146,12 +146,62 @@ html,body { width:100%;height:100%;overflow:hidden;background:var(--bg);
 
 /* hint */
 .orb-hint {
-  font-size:11px;color:var(--silver);opacity:.4;
-  font-family:'Helvetica Neue',sans-serif;letter-spacing:.8px;
-  transition:opacity .4s;
+  font-size:13px;color:var(--silver);opacity:.7;
+  font-family:'Helvetica Neue',sans-serif;letter-spacing:.6px;
+  transition:opacity .4s, color .4s;
   line-height:1.6;
 }
-.orb-hint.active { opacity:.75;color:var(--violet-l); }
+.orb-hint.active { opacity:1;color:var(--violet-l); }
+
+/* ══════════════ SCREEN 3 — LIMIT ══════════════ */
+#s3 { justify-content:center; }
+.s3-inner {
+  display:flex;flex-direction:column;align-items:center;
+  width:100%;max-width:340px;text-align:center;
+  background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);
+  border-radius:28px;backdrop-filter:blur(24px);padding:40px 24px;
+}
+.s3-icon {
+  font-size:32px;color:var(--gold);opacity:.7;
+  margin-bottom:20px;animation:orbPulse 3s ease-in-out infinite;
+}
+.s3-title {
+  font-size:clamp(20px,5vw,26px);line-height:1.38;
+  color:var(--white);font-weight:400;margin-bottom:14px;
+}
+.s3-sub {
+  font-size:13px;color:var(--silver);opacity:.55;
+  font-family:'Helvetica Neue',sans-serif;margin-bottom:18px;
+  line-height:1.5;
+}
+.s3-countdown {
+  font-size:38px;font-family:'Georgia',serif;
+  background:linear-gradient(135deg,var(--gold-l),var(--violet-l));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;margin-bottom:28px;letter-spacing:2px;
+  filter:drop-shadow(0 0 12px rgba(201,168,76,.3));
+}
+.s3-divider {
+  width:60%;height:1px;background:rgba(255,255,255,.08);margin-bottom:24px;
+}
+.s3-premium-hint {
+  font-size:12px;color:var(--silver);opacity:.45;
+  font-family:'Helvetica Neue',sans-serif;margin-bottom:14px;letter-spacing:.3px;
+}
+.btn-stars {
+  display:flex;align-items:center;gap:8px;
+  padding:14px 28px;border-radius:40px;
+  border:1px solid rgba(251,191,36,.4);
+  background:rgba(251,191,36,.07);
+  color:#fbbf24;font-size:14px;
+  font-family:'Helvetica Neue',sans-serif;letter-spacing:.5px;
+  cursor:pointer;transition:all .3s;margin-bottom:4px;
+}
+.btn-stars:hover {
+  border-color:rgba(251,191,36,.7);
+  box-shadow:0 0 22px rgba(251,191,36,.15);
+}
+.star-ico { font-size:16px; }
 
 /* s1 buttons */
 .s1-btns {
@@ -306,11 +356,8 @@ html,body { width:100%;height:100%;overflow:hidden;background:var(--bg);
     </div>
   </div>
 
-  <p class="orb-hint" id="orbHint">удерживайте, чтобы Вселенная ответила</p>
+  <p class="orb-hint" id="orbHint">удерживайте шар, чтобы Вселенная ответила</p>
 
-  <div class="s1-btns">
-    <button class="btn-random" onclick="doReveal(Math.floor(Math.random()*9)+1)">✦ Довериться случайности</button>
-  </div>
 </div>
 
 <!-- ── SCREEN 2 (reveal) ── -->
@@ -322,6 +369,22 @@ html,body { width:100%;height:100%;overflow:hidden;background:var(--bg);
       <button class="btn-share" onclick="doShare()">Поделиться ✦</button>
       <button class="btn-again" onclick="goBack()">Ещё раз</button>
     </div>
+  </div>
+</div>
+
+<!-- ── SCREEN 3 (limit) ── -->
+<div class="screen" id="s3">
+  <div class="s3-inner">
+    <div class="s3-icon">✦</div>
+    <h2 class="s3-title">Вселенная уже<br>говорила с тобой сегодня</h2>
+    <p class="s3-sub">Твой знак был услышан. Следующее послание откроется через</p>
+    <div class="s3-countdown" id="s3countdown">00:00:00</div>
+    <div class="s3-divider"></div>
+    <p class="s3-premium-hint">Хочешь ещё одно послание прямо сейчас?</p>
+    <button class="btn-stars" onclick="buyStars()">
+      <span class="star-ico">⭐</span> Получить за Telegram Stars
+    </button>
+    <button class="btn-again" style="margin-top:10px" onclick="goBack()">Вернуться</button>
   </div>
 </div>
 
@@ -636,7 +699,7 @@ function holdStart(e) {
   holdStartTime = Date.now();
   orbEl.classList.add('holding');
   orbHint.classList.add('active');
-  orbHint.textContent = 'не отпускай…';
+  orbHint.textContent = 'не отпускай шар…';
   arcFill.style.opacity = '1';
   haptic('medium'); // start haptic
 
@@ -664,7 +727,7 @@ function holdStop() {
   clearInterval(holdTimer); holdTimer = null;
   orbEl.classList.remove('holding');
   orbHint.classList.remove('active');
-  orbHint.textContent = 'удерживайте, чтобы Вселенная ответила';
+  orbHint.textContent = 'удерживайте шар, чтобы Вселенная ответила';
   arcFill.style.opacity = '0';
   arcFill.style.strokeDashoffset = ARC;
   holdProgress = 0;
@@ -814,6 +877,10 @@ function flash(cb) {
 }
 
 function doReveal(n) {
+  // проверка дневного лимита
+  if (hasUsedToday()) { showLimitScreen(); return; }
+  markUsed();
+
   const d = DATA[n];
   const me=document.getElementById('s2m');
   const mt=document.getElementById('s2meta'), bt=document.getElementById('s2btns');
@@ -864,6 +931,66 @@ function doReveal(n) {
       });
     });
   });
+}
+
+/* ══════════════════════════════
+   DAILY LIMIT
+══════════════════════════════ */
+const LIMIT_KEY   = 'vsel_last_date';
+const PREMIUM_KEY = 'vsel_premium';
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function isPremium() {
+  return localStorage.getItem(PREMIUM_KEY) === 'true';
+}
+
+function hasUsedToday() {
+  if (isPremium()) return false;
+  return localStorage.getItem(LIMIT_KEY) === todayStr();
+}
+
+function markUsed() {
+  localStorage.setItem(LIMIT_KEY, todayStr());
+}
+
+// обратный отсчёт до полуночи
+let countdownTimer = null;
+function startCountdown() {
+  const el = document.getElementById('s3countdown');
+  function tick() {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    const diff = midnight - now;
+    const h = String(Math.floor(diff / 3600000)).padStart(2,'0');
+    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2,'0');
+    const s = String(Math.floor((diff % 60000) / 1000)).padStart(2,'0');
+    el.textContent = `${h}:${m}:${s}`;
+  }
+  tick();
+  clearInterval(countdownTimer);
+  countdownTimer = setInterval(tick, 1000);
+}
+
+function showLimitScreen() {
+  flash(() => {
+    showScr('s3');
+    startCountdown();
+  });
+}
+
+function buyStars() {
+  // Заглушка — здесь будет реальная оплата Stars
+  const webApp = window.Telegram && window.Telegram.WebApp;
+  if (webApp && webApp.showAlert) {
+    webApp.showAlert('Оплата Stars появится совсем скоро ✦\n\nПока возвращайся завтра за новым посланием.');
+  } else {
+    alert('Оплата Stars — скоро ✦');
+  }
 }
 
 function goBack() {
