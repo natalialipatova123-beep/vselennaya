@@ -384,21 +384,6 @@ html,body { width:100%;height:100%;overflow:hidden;background:var(--bg);
   </div>
 </div>
 
-<!-- ── SCREEN 3 (limit) ── -->
-<div class="screen" id="s3">
-  <div class="s3-inner">
-    <div class="s3-icon">✦</div>
-    <h2 class="s3-title">Вселенная уже<br>говорила с тобой сегодня</h2>
-    <p class="s3-sub">Твой знак был услышан. Следующее послание откроется через</p>
-    <div class="s3-countdown" id="s3countdown">00:00:00</div>
-    <div class="s3-divider"></div>
-    <p class="s3-premium-hint">Хочешь ещё одно послание прямо сейчас?</p>
-    <button class="btn-stars" onclick="buyStars()">
-      <span class="star-ico">⭐</span> Получить за Telegram Stars
-    </button>
-    <button class="btn-again" style="margin-top:10px" onclick="goBack()">Вернуться</button>
-  </div>
-</div>
 
 <script>
 /* ══════════════════════════════
@@ -889,10 +874,6 @@ function flash(cb) {
 }
 
 function doReveal(n) {
-  // проверка дневного лимита
-  if (hasUsedToday()) { showLimitScreen(); return; }
-  markUsed();
-
   const d = DATA[n];
   const me=document.getElementById('s2m');
   const mt=document.getElementById('s2meta'), bt=document.getElementById('s2btns');
@@ -945,65 +926,6 @@ function doReveal(n) {
   });
 }
 
-/* ══════════════════════════════
-   DAILY LIMIT
-══════════════════════════════ */
-const LIMIT_KEY   = 'vsel_last_date';
-const PREMIUM_KEY = 'vsel_premium';
-
-function todayStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-}
-
-function isPremium() {
-  return localStorage.getItem(PREMIUM_KEY) === 'true';
-}
-
-function hasUsedToday() {
-  if (isPremium()) return false;
-  return localStorage.getItem(LIMIT_KEY) === todayStr();
-}
-
-function markUsed() {
-  localStorage.setItem(LIMIT_KEY, todayStr());
-}
-
-// обратный отсчёт до полуночи
-let countdownTimer = null;
-function startCountdown() {
-  const el = document.getElementById('s3countdown');
-  function tick() {
-    const now = new Date();
-    const midnight = new Date();
-    midnight.setHours(24, 0, 0, 0);
-    const diff = midnight - now;
-    const h = String(Math.floor(diff / 3600000)).padStart(2,'0');
-    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2,'0');
-    const s = String(Math.floor((diff % 60000) / 1000)).padStart(2,'0');
-    el.textContent = `${h}:${m}:${s}`;
-  }
-  tick();
-  clearInterval(countdownTimer);
-  countdownTimer = setInterval(tick, 1000);
-}
-
-function showLimitScreen() {
-  flash(() => {
-    showScr('s3');
-    startCountdown();
-  });
-}
-
-function buyStars() {
-  // Заглушка — здесь будет реальная оплата Stars
-  const webApp = window.Telegram && window.Telegram.WebApp;
-  if (webApp && webApp.showAlert) {
-    webApp.showAlert('Оплата Stars появится совсем скоро ✦\n\nПока возвращайся завтра за новым посланием.');
-  } else {
-    alert('Оплата Stars — скоро ✦');
-  }
-}
 
 function goBack() {
   holdProgress=0;
