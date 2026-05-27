@@ -880,27 +880,21 @@ function doShare() {
   const shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(botUrl)
                  + '&text=' + encodeURIComponent(shareText);
 
-  const btn = document.querySelector('.btn-share');
-
-  // Попытка 1: Telegram openTelegramLink
-  if (tg && typeof tg.openTelegramLink === 'function') {
-    try { tg.openTelegramLink(shareUrl); return; } catch(e) {}
-  }
-
-  // Попытка 2: window.open (работает в браузере)
-  if (window.open(shareUrl, '_blank')) return;
-
-  // Попытка 3: Web Share API (мобильный браузер)
-  if (navigator.share) {
-    navigator.share({ title:'Послание Вселенной', text: shareText + '\n' + botUrl }).catch(()=>{});
+  // Внутри Telegram — нативный шейринг
+  const webApp = window.Telegram && window.Telegram.WebApp;
+  if (webApp && webApp.openTelegramLink) {
+    webApp.openTelegramLink(shareUrl);
     return;
   }
 
-  // Запасной вариант: копировать в буфер
-  navigator.clipboard?.writeText(shareText + '\n' + botUrl);
-  const orig = btn.textContent;
-  btn.textContent = '✓ Скопировано';
-  setTimeout(()=> btn.textContent = orig, 2000);
+  // Мобильный браузер — Web Share API
+  if (navigator.share) {
+    navigator.share({ text: shareText + '\n' + botUrl }).catch(()=>{});
+    return;
+  }
+
+  // Десктоп браузер — открыть ссылку
+  window.open(shareUrl, '_blank');
 }
 </script>
 </body>
